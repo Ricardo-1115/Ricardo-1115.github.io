@@ -177,6 +177,90 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://gclv.top/2026/05/18/esp32-i2c-esp_err_invalid_state-debug/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gclv">
+      <meta itemprop="description" content="任然我说我庆幸，你永远胜过别人">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="南淮">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2026/05/18/esp32-i2c-esp_err_invalid_state-debug/" class="post-title-link" itemprop="url">ESP32-S3 I2C 踩坑记：ESP_ERR_INVALID_STATE 的排查与根因</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2026-05-18 12:00:00 / 修改时间：18:39:41" itemprop="dateCreated datePublished" datetime="2026-05-18T12:00:00+08:00">2026-05-18</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">技术</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="问题现象"><a href="#问题现象" class="headerlink" title="问题现象"></a>问题现象</h2><p>在一块新焊接的 ESP32-S3 主控板上，PCA9685 舵机驱动初始化失败，<code>abort()</code> 报错：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ESP_ERROR_CHECK failed: esp_err_t 0x103 (ESP_ERR_INVALID_STATE) at 0x42015f59</span><br><span class="line">file: &quot;./Components/Servo/PCA9685.c&quot; line 62</span><br><span class="line">func: pca9685_init_with_bus</span><br><span class="line">expression: i2c_write_register(dev_handle, PCA_Model, &amp;init_data, 1, 100)</span><br></pre></td></tr></table></figure>
+
+<p>关键信息：</p>
+<ul>
+<li><strong>同一套代码</strong>，在旧板上正常运行</li>
+<li>新板是自行焊接的 ESP32-S3 主控板，<strong>PCA9685 模块没换</strong></li>
+<li>万用表测过 I2C 引脚（GPIO4&#x2F;GPIO5）连通性：<strong>物理连接没问题</strong></li>
+<li>外置 1kΩ 上拉电阻已焊接</li>
+</ul>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2026/05/18/esp32-i2c-esp_err_invalid_state-debug/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://gclv.top/2025/11/24/change-and-appraisal/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -325,16 +409,16 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
           <a href="/archives">
-          <span class="site-state-item-count">1</span>
+          <span class="site-state-item-count">2</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
-        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-count">2</span>
         <span class="site-state-item-name">分类</span>
       </div>
       <div class="site-state-item site-state-tags">
-        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-count">8</span>
         <span class="site-state-item-name">标签</span>
       </div>
   </nav>

@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 8.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic|Source Code Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"gclv.top","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="问题现象在一块新焊接的 ESP32-S3 主控板上，PCA9685 舵机驱动初始化失败，abort() 报错： 1234ESP_ERROR_CHECK failed: esp_err_t 0x103 (ESP_ERR_INVALID_STATE) at 0x42015f59file: &quot;.&#x2F;Components&#x2F;Servo&#x2F;PCA9685.c&quot; line 62func: pca">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ESP32-S3 I2C 踩坑记：ESP_ERR_INVALID_STATE 的排查与根因">
+<meta property="og:url" content="https://gclv.top/2026/05/18/esp32-i2c-esp_err_invalid_state-debug/index.html">
+<meta property="og:site_name" content="南淮">
+<meta property="og:description" content="问题现象在一块新焊接的 ESP32-S3 主控板上，PCA9685 舵机驱动初始化失败，abort() 报错： 1234ESP_ERROR_CHECK failed: esp_err_t 0x103 (ESP_ERR_INVALID_STATE) at 0x42015f59file: &quot;.&#x2F;Components&#x2F;Servo&#x2F;PCA9685.c&quot; line 62func: pca">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-05-18T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-18T10:39:41.095Z">
+<meta property="article:author" content="gclv">
+<meta property="article:tag" content="ESP-IDF">
+<meta property="article:tag" content="ESP32">
+<meta property="article:tag" content="I2C">
+<meta property="article:tag" content="嵌入式">
+<meta property="article:tag" content="调试">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://gclv.top/2026/05/18/esp32-i2c-esp_err_invalid_state-debug/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>ESP32-S3 I2C 踩坑记：ESP_ERR_INVALID_STATE 的排查与根因 | 南淮</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">南淮</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-learning">
+
+    <a href="/learning/" rel="section"><i class="paper-plane fa-fw"></i>学习</a>
+
+  </li>
+        <li class="menu-item menu-item-thinkings">
+
+    <a href="/thinkings/" rel="section"><i class="hand-holding-seedling fa-fw"></i>随感</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://gclv.top/2026/05/18/esp32-i2c-esp_err_invalid_state-debug/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gclv">
+      <meta itemprop="description" content="任然我说我庆幸，你永远胜过别人">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="南淮">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          ESP32-S3 I2C 踩坑记：ESP_ERR_INVALID_STATE 的排查与根因
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2026-05-18 12:00:00 / 修改时间：18:39:41" itemprop="dateCreated datePublished" datetime="2026-05-18T12:00:00+08:00">2026-05-18</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">技术</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="问题现象"><a href="#问题现象" class="headerlink" title="问题现象"></a>问题现象</h2><p>在一块新焊接的 ESP32-S3 主控板上，PCA9685 舵机驱动初始化失败，<code>abort()</code> 报错：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ESP_ERROR_CHECK failed: esp_err_t 0x103 (ESP_ERR_INVALID_STATE) at 0x42015f59</span><br><span class="line">file: &quot;./Components/Servo/PCA9685.c&quot; line 62</span><br><span class="line">func: pca9685_init_with_bus</span><br><span class="line">expression: i2c_write_register(dev_handle, PCA_Model, &amp;init_data, 1, 100)</span><br></pre></td></tr></table></figure>
+
+<p>关键信息：</p>
+<ul>
+<li><strong>同一套代码</strong>，在旧板上正常运行</li>
+<li>新板是自行焊接的 ESP32-S3 主控板，<strong>PCA9685 模块没换</strong></li>
+<li>万用表测过 I2C 引脚（GPIO4&#x2F;GPIO5）连通性：<strong>物理连接没问题</strong></li>
+<li>外置 1kΩ 上拉电阻已焊接</li>
+</ul>
+<span id="more"></span>
+
+<h2 id="排查过程"><a href="#排查过程" class="headerlink" title="排查过程"></a>排查过程</h2><h3 id="第一步：怀疑速度太快"><a href="#第一步：怀疑速度太快" class="headerlink" title="第一步：怀疑速度太快"></a>第一步：怀疑速度太快</h3><p>既然是全新焊接的板子，首先怀疑 I2C 信号完整性。将 I2C 时钟从 400kHz 降到 100kHz：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// main.c - I2C 总线配置</span></span><br><span class="line"><span class="type">i2c_master_bus_config_t</span> bus_config = &#123;</span><br><span class="line">    .sda_io_num = GPIO_NUM_4,</span><br><span class="line">    .scl_io_num = GPIO_NUM_5,</span><br><span class="line">    .clk_source = I2C_CLK_SRC_DEFAULT,</span><br><span class="line">    .trans_queue_depth = <span class="number">0</span>,   <span class="comment">// ← 注意这个值</span></span><br><span class="line">    .flags.enable_internal_pullup = <span class="number">1</span>,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>结果：仍然报错。</strong> 不是速度问题。</p>
+<h3 id="第二步：I2C-地址扫描"><a href="#第二步：I2C-地址扫描" class="headerlink" title="第二步：I2C 地址扫描"></a>第二步：I2C 地址扫描</h3><p>既然设备存在且连线正确，上 I2C 扫描仪功能，看总线上到底有哪些设备：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (<span class="type">uint8_t</span> addr = <span class="number">0x03</span>; addr &lt;= <span class="number">0x77</span>; addr++) &#123;</span><br><span class="line">    <span class="type">esp_err_t</span> err = i2c_master_probe(bus_handle, addr, <span class="number">100</span>);</span><br><span class="line">    <span class="keyword">if</span> (err == ESP_OK) &#123;</span><br><span class="line">        ESP_LOGI(TAG, <span class="string">&quot;  [Found] 0x%02X&quot;</span>, addr);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">I (1225) example: 开始扫描 I2C 总线...</span><br><span class="line">I (1230) example:   [Found] 0x40     ← PCA9685</span><br><span class="line">I (1240) example:   [Found] 0x70     ← ？？？</span><br><span class="line">I (1240) example: I2C 扫描完成，共发现 2 个设备</span><br></pre></td></tr></table></figure>
+
+<p>意外发现一个 <strong>0x70</strong> 的神秘设备！查资料发现 0x70 是 PCA9685 的 <strong>ALLCALL 广播地址</strong>（MODE1 寄存器 Bit 5 默认开启），所以不是额外设备，虚惊一场。</p>
+<p><strong>但更重要的是：扫描之后 PCA9685 初始化居然成功了！</strong></p>
+<h3 id="第三步：定位——是扫描本身起了作用"><a href="#第三步：定位——是扫描本身起了作用" class="headerlink" title="第三步：定位——是扫描本身起了作用"></a>第三步：定位——是扫描本身起了作用</h3><p>去掉扫描代码 → 回到原始代码 → 重新报错。反复验证确认：<strong>是扫描中的 <code>i2c_master_probe</code> 调用让 PCA9685 初始化成功，不是扫描的副产物。</strong></p>
+<p>分步定位：</p>
+<table>
+<thead>
+<tr>
+<th>测试</th>
+<th>操作</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>纯延迟 50ms（代替 probe）</td>
+<td>❌ 失败</td>
+</tr>
+<tr>
+<td>2</td>
+<td>纯延迟 500ms</td>
+<td>❌ 失败</td>
+</tr>
+<tr>
+<td>3</td>
+<td>probe 在 <code>add_device</code> <strong>之前</strong></td>
+<td>✅ 成功</td>
+</tr>
+<tr>
+<td>4</td>
+<td>probe 在 <code>add_device</code> <strong>之后</strong>、写寄存器<strong>之前</strong></td>
+<td>✅ 成功</td>
+</tr>
+</tbody></table>
+<p>结论：<strong>不是上电时序问题</strong>（延迟无效），而是 I2C 控制器在添加设备后、第一次数据传输前需要一次”预热”事务。</p>
+<h3 id="第四步：根因——trans-queue-depth-0"><a href="#第四步：根因——trans-queue-depth-0" class="headerlink" title="第四步：根因——trans_queue_depth &#x3D; 0"></a>第四步：根因——trans_queue_depth &#x3D; 0</h3><p>注意到 <code>trans_queue_depth = 0</code>，这在 ESP-IDF v5.x 中意味着不为 I2C 驱动分配内部传输队列。查阅 ESP-IDF 文档和源码发现：</p>
+<ul>
+<li><code>trans_queue_depth = 0</code> 时，驱动使用”直接模式”处理事务</li>
+<li>在某些芯片上（芯片个体差异），第一次 <code>i2c_master_transmit</code> 时驱动内部状态机尚未完全就绪，返回 <code>ESP_ERR_INVALID_STATE</code></li>
+<li><code>i2c_master_probe</code> 发送了一个空事务（START + Address + STOP），无意中”激活”了驱动内部状态</li>
+<li>设为 <code>trans_queue_depth = 4</code> 后，驱动在总线创建时就分配好队列资源，第一次传输正常</li>
+</ul>
+<p>修复：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// main.c</span></span><br><span class="line"><span class="type">i2c_master_bus_config_t</span> bus_config = &#123;</span><br><span class="line">    <span class="comment">// ... 其他配置不变</span></span><br><span class="line">    .trans_queue_depth = <span class="number">4</span>,  <span class="comment">// ← 从 0 改为 4</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h2 id="根因总结"><a href="#根因总结" class="headerlink" title="根因总结"></a>根因总结</h2><table>
+<thead>
+<tr>
+<th>项目</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>直接原因</strong></td>
+<td><code>trans_queue_depth = 0</code> 导致 I2C 驱动无内部队列，首次传输在某些芯片上状态异常</td>
+</tr>
+<tr>
+<td><strong>芯片差异</strong></td>
+<td>旧板 ESP32-S3 无此问题，新板有此问题，属芯片个体差异</td>
+</tr>
+<tr>
+<td><strong>为什么 scan 能 work</strong></td>
+<td><code>i2c_master_probe</code> 的空事务无意中”预热”了驱动状态机</td>
+</tr>
+<tr>
+<td><strong>为什么延迟没用</strong></td>
+<td>不是电源时序问题，是驱动层状态机的问题</td>
+</tr>
+</tbody></table>
+<h2 id="教训"><a href="#教训" class="headerlink" title="教训"></a>教训</h2><ol>
+<li><strong><code>trans_queue_depth = 0</code> 是一个危险值。</strong> 即使它在大部分芯片上工作，也无法保证在所有芯片上可靠。设一个合理的队列深度（如 4）是更稳健的做法。</li>
+<li><strong>I2C 扫描不仅是调试工具。</strong> 在这次排查中，扫描本身无意间成了”修复”手段，反过来帮助定位了根因。</li>
+<li><strong>万用表测连通性 ≠ 硬件没问题。</strong> 很多嵌入式问题出在芯片内部状态、驱动配置等软件层面，不要过早排除软件原因。</li>
+<li><strong>替换法（新旧板对比）是高效的手段。</strong> 能快速将问题范围缩小到”相同代码、不同硬件”的差异点上。</li>
+</ol>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
+<li>ESP-IDF v5.5 I2C Master API 文档</li>
+<li>PCA9685 数据手册（NXP）</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/ESP32/" rel="tag"># ESP32</a>
+              <a href="/tags/I2C/" rel="tag"># I2C</a>
+              <a href="/tags/ESP-IDF/" rel="tag"># ESP-IDF</a>
+              <a href="/tags/%E8%B0%83%E8%AF%95/" rel="tag"># 调试</a>
+              <a href="/tags/%E5%B5%8C%E5%85%A5%E5%BC%8F/" rel="tag"># 嵌入式</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2025/11/24/change-and-appraisal/" rel="next" title="三法印随感记录">
+      三法印随感记录 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E7%8E%B0%E8%B1%A1"><span class="nav-number">1.</span> <span class="nav-text">问题现象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%92%E6%9F%A5%E8%BF%87%E7%A8%8B"><span class="nav-number">2.</span> <span class="nav-text">排查过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E6%80%80%E7%96%91%E9%80%9F%E5%BA%A6%E5%A4%AA%E5%BF%AB"><span class="nav-number">2.1.</span> <span class="nav-text">第一步：怀疑速度太快</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9AI2C-%E5%9C%B0%E5%9D%80%E6%89%AB%E6%8F%8F"><span class="nav-number">2.2.</span> <span class="nav-text">第二步：I2C 地址扫描</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%9A%E5%AE%9A%E4%BD%8D%E2%80%94%E2%80%94%E6%98%AF%E6%89%AB%E6%8F%8F%E6%9C%AC%E8%BA%AB%E8%B5%B7%E4%BA%86%E4%BD%9C%E7%94%A8"><span class="nav-number">2.3.</span> <span class="nav-text">第三步：定位——是扫描本身起了作用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E6%AD%A5%EF%BC%9A%E6%A0%B9%E5%9B%A0%E2%80%94%E2%80%94trans-queue-depth-0"><span class="nav-number">2.4.</span> <span class="nav-text">第四步：根因——trans_queue_depth &#x3D; 0</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B9%E5%9B%A0%E6%80%BB%E7%BB%93"><span class="nav-number">3.</span> <span class="nav-text">根因总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%99%E8%AE%AD"><span class="nav-number">4.</span> <span class="nav-text">教训</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83"><span class="nav-number">5.</span> <span class="nav-text">参考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="gclv"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">gclv</p>
+  <div class="site-description" itemprop="description">任然我说我庆幸，你永远胜过别人</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">2</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Ricardo-1115" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Ricardo-1115" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2025 – 
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">gclv</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
