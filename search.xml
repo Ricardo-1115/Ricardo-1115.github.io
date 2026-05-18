@@ -4,6 +4,8 @@
     <title>三法印随感记录</title>
     <url>/2025/11/24/change-and-appraisal/</url>
     <content><![CDATA[<p>“诸行无常，诸法无我，涅槃寂静”，这是佛教中的三法印，最近有一些随感发现与其有相通之处，在此记录下来。「2025.11.24」</p>
+<span id="more"></span>
+
 <p>一</p>
 <p>“诸行无常”，一切因缘和合而生的事物、现象都是不会永恒不变的。可以说世界上几乎所有的事物都是因缘而生的，所谓缘起性空，因此不要说什么功名厚禄终会消散，就连曾经的山盟海誓也会失效，但正因如此我们才要加倍珍惜当下的每一个瞬间，他们都是不可再现的。如果你真的找到了时光机去穿越回过去，可是过去的事情已经发生了，「曾经有过的不会失去，而未来永无限定」每一次让你或开心或遗憾的过去都是独一无二的绝响。当下拥有的事物应当珍惜，因为他们终有一天会离去，这样失去之后也能不那么悲伤了。</p>
 <p>二</p>
@@ -28,8 +30,10 @@
   <entry>
     <title>ESP32-S3 I2C 踩坑记：ESP_ERR_INVALID_STATE 的排查与根因</title>
     <url>/2026/05/18/esp32-i2c-esp_err_invalid_state-debug/</url>
-    <content><![CDATA[<h2 id="问题现象"><a href="#问题现象" class="headerlink" title="问题现象"></a>问题现象</h2><p>在一块新焊接的 ESP32-S3 主控板上，PCA9685 舵机驱动初始化失败，<code>abort()</code> 报错：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ESP_ERROR_CHECK failed: esp_err_t 0x103 (ESP_ERR_INVALID_STATE) at 0x42015f59</span><br><span class="line">file: &quot;./Components/Servo/PCA9685.c&quot; line 62</span><br><span class="line">func: pca9685_init_with_bus</span><br><span class="line">expression: i2c_write_register(dev_handle, PCA_Model, &amp;init_data, 1, 100)</span><br></pre></td></tr></table></figure>
+    <content><![CDATA[<p>在一块新焊接的 ESP32-S3 主控板上，PCA9685 舵机驱动初始化失败，<code>abort()</code> 报错：</p>
+<span id="more"></span>
+
+<h2 id="问题现象"><a href="#问题现象" class="headerlink" title="问题现象"></a>问题现象</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ESP_ERROR_CHECK failed: esp_err_t 0x103 (ESP_ERR_INVALID_STATE) at 0x42015f59</span><br><span class="line">file: &quot;./Components/Servo/PCA9685.c&quot; line 62</span><br><span class="line">func: pca9685_init_with_bus</span><br><span class="line">expression: i2c_write_register(dev_handle, PCA_Model, &amp;init_data, 1, 100)</span><br></pre></td></tr></table></figure>
 
 <p>关键信息：</p>
 <ul>
@@ -38,8 +42,6 @@
 <li>万用表测过 I2C 引脚（GPIO4&#x2F;GPIO5）连通性：<strong>物理连接没问题</strong></li>
 <li>外置 1kΩ 上拉电阻已焊接</li>
 </ul>
-<span id="more"></span>
-
 <h2 id="排查过程"><a href="#排查过程" class="headerlink" title="排查过程"></a>排查过程</h2><h3 id="第一步：怀疑速度太快"><a href="#第一步：怀疑速度太快" class="headerlink" title="第一步：怀疑速度太快"></a>第一步：怀疑速度太快</h3><p>既然是全新焊接的板子，首先怀疑 I2C 信号完整性。将 I2C 时钟从 400kHz 降到 100kHz：</p>
 <figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">// main.c - I2C 总线配置</span></span><br><span class="line"><span class="type">i2c_master_bus_config_t</span> bus_config = &#123;</span><br><span class="line">    .sda_io_num = GPIO_NUM_4,</span><br><span class="line">    .scl_io_num = GPIO_NUM_5,</span><br><span class="line">    .clk_source = I2C_CLK_SRC_DEFAULT,</span><br><span class="line">    .trans_queue_depth = <span class="number">0</span>,   <span class="comment">// ← 注意这个值</span></span><br><span class="line">    .flags.enable_internal_pullup = <span class="number">1</span>,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
 
