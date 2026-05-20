@@ -126,6 +126,34 @@
 <li><strong>万用表测连通性 ≠ 硬件没问题。</strong> 很多嵌入式问题出在芯片内部状态、驱动配置等软件层面，不要过早排除软件原因。</li>
 <li><strong>替换法（新旧板对比）是高效的手段。</strong> 能快速将问题范围缩小到”相同代码、不同硬件”的差异点上。</li>
 </ol>
+<h2 id="更新"><a href="#更新" class="headerlink" title="更新"></a>更新</h2><p>2026-05-20：在相同平台（ESP32-S3、同一块主控板）上，U8G2（SSD1306 OLED）初始化时也出现类似现象：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">E (1565) i2c.master: s_i2c_asynchronous_transaction(966): ops list is full, please increase your trans_queue_depth</span><br><span class="line">E (1565) u8g2_i2c_port: i2c_master_transmit failed: ESP_ERR_INVALID_STATE</span><br></pre></td></tr></table></figure>
+
+<p>不同配置下的表现：</p>
+<table>
+<thead>
+<tr>
+<th><code>trans_queue_depth</code></th>
+<th>是否报错</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>是</td>
+</tr>
+<tr>
+<td>16</td>
+<td>是</td>
+</tr>
+<tr>
+<td>64</td>
+<td>是</td>
+</tr>
+<tr>
+<td>16 + <code>i2c_master_probe(0x3C)</code> 预热</td>
+<td>否</td>
+</tr>
+</tbody></table>
 <h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
 <li>ESP-IDF v5.5 I2C Master API 文档</li>
 <li>PCA9685 数据手册（NXP）</li>
