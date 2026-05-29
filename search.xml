@@ -170,4 +170,38 @@
         <tag>嵌入式</tag>
       </tags>
   </entry>
+  <entry>
+    <title>SHT31 驱动中 CRC-8 校验的理解与实现</title>
+    <url>/2026/05/29/sht31-crc8-implementation/</url>
+    <content><![CDATA[<p>在开发调试SHT31这款芯片驱动时用到了CRC校验，这里记录一些我的理解，希望对你有帮助。</p>
+<p>关于CRC校验的内容讲解就不在这里提了，网上有很多的优质教程，这里结合软件代码的实现谈一下我的理解，先看代码</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * ===================================================================</span></span><br><span class="line"><span class="comment"> *  CRC-8 校验（数据手册 4.12 节）</span></span><br><span class="line"><span class="comment"> * ===================================================================</span></span><br><span class="line"><span class="comment"> * 特征多项式: x^8 + x^5 + x^4 + 1  →  0x31</span></span><br><span class="line"><span class="comment"> * 初始值:    0xFF</span></span><br><span class="line"><span class="comment"> * 最终异或:  无（0x00）</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * 传感器每发 2 字节数据就附 1 字节 CRC，覆盖范围就是前 2 字节。</span></span><br><span class="line"><span class="comment"> * 校验失败说明 I2C 线路上有噪声干扰，数据不可信。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="type">uint8_t</span> <span class="title function_">crc8</span><span class="params">(<span class="type">const</span> <span class="type">uint8_t</span> *data, <span class="type">size_t</span> len)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">uint8_t</span> crc = <span class="number">0xFF</span>;                      <span class="comment">/* 初始值 */</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">size_t</span> i = <span class="number">0</span>; i &lt; len; i++) &#123;</span><br><span class="line">        crc ^= data[i];                      <span class="comment">/* 每进来一个字节先异或 */</span></span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> j = <span class="number">0</span>; j &lt; <span class="number">8</span>; j++) &#123;        <span class="comment">/* 逐位处理 */</span></span><br><span class="line">            crc = (crc &amp; <span class="number">0x80</span>) ? (crc &lt;&lt; <span class="number">1</span>) ^ <span class="number">0x31</span> : (crc &lt;&lt; <span class="number">1</span>);</span><br><span class="line">            <span class="comment">/* 最高位为 1 时左移后异或多项式，否则单纯左移 */</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> crc;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>SHT31返回的数据格式是两字节温度数据加一字节CRC加两字节湿度数据加一字节CRC，共六字节。只看CRC的实现的话可以先忽略外层的 for 循环，把它当成每次只处理一个字节来理解。</p>
+<p>流程是这样的：先把数据与初始值 0xFF 异或（可以看成不考虑进位、借位的二进制加减法），然后做模2除法，这里可以想象普通十进制除法，只不过不考虑进位和借位。相关实现就是</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">for</span> (<span class="type">int</span> j = <span class="number">0</span>; j &lt; <span class="number">8</span>; j++) &#123;</span><br><span class="line">    crc = (crc &amp; <span class="number">0x80</span>) ? (crc &lt;&lt; <span class="number">1</span>) ^ <span class="number">0x31</span> : (crc &lt;&lt; <span class="number">1</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里说一下我一开始的困惑。拿十进制除法来类比，比如4除以3：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">    1    ← 商</span><br><span class="line">  ______</span><br><span class="line">3 ) 4</span><br><span class="line">    3    ← 1 × 3</span><br><span class="line">   ___</span><br><span class="line">    1    ← 余数</span><br></pre></td></tr></table></figure>
+
+<p>4比3大，商为1，4减3余1。</p>
+<p>如果用3除以5举例：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">    0    ← 商</span><br><span class="line">  ______</span><br><span class="line">5 ) 3</span><br><span class="line">    0    ← 0 × 5</span><br><span class="line">   ___</span><br><span class="line">    3    ← 余数</span><br></pre></td></tr></table></figure>
+
+<p>3比5小，商为0，3减0余3。</p>
+<p>回到代码中来理解，二进制只有0和1，最大的数是1，不是1就是最小的0，所以最高位是1就是当前”够大”，商不为0，异或多项式相当于4减3（1×3）；最高位是0就是”不够大”，商为0，相当于3减0（0×5），二进制中因为异或0值不变，所以”否则单纯左移”。</p>
+<p>通过竖式演示可能更清楚，假设数据 <code>0xBE</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Step 0: crc = 0xFF ^ 0xBE = 0x41 = 0100 0001</span><br><span class="line"></span><br><span class="line">bit 0 (MSB=0): 1000 0010             ← 左移，不异或</span><br><span class="line">bit 1 (MSB=1): 0000 0100 ^ 0x31</span><br><span class="line">             = 0000 0100 ^ 0011 0001</span><br><span class="line">             = 0011 0101             ← 异或</span><br><span class="line">bit 2 (MSB=0): 0110 1010             ← 左移</span><br><span class="line">bit 3 (MSB=0): 1101 0100             ← 左移</span><br><span class="line">bit 4 (MSB=1): 1010 1000 ^ 0011 0001</span><br><span class="line">             = 1001 1001             ← 异或</span><br><span class="line">bit 5 (MSB=1): 0011 0010 ^ 0011 0001</span><br><span class="line">             = 0000 0011             ← 异或</span><br><span class="line">bit 6 (MSB=0): 0000 0110             ← 左移</span><br><span class="line">bit 7 (MSB=0): 0000 1100             ← 左移</span><br><span class="line"></span><br><span class="line">Result: 0x0C</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>嵌入式开发</category>
+      </categories>
+      <tags>
+        <tag>I2C</tag>
+        <tag>ESP-IDF</tag>
+        <tag>嵌入式</tag>
+        <tag>CRC</tag>
+        <tag>SHT31</tag>
+      </tags>
+  </entry>
 </search>
