@@ -18,6 +18,34 @@
   --btn-default-hover-color: #fff;
   --btn-default-hover-border-color: #222;
 }
+@media (prefers-color-scheme: dark) {
+  :root {
+    --body-bg-color: #282828;
+    --content-bg-color: #333;
+    --card-bg-color: #555;
+    --text-color: #ccc;
+    --blockquote-color: #bbb;
+    --link-color: #ccc;
+    --link-hover-color: #eee;
+    --brand-color: #ddd;
+    --brand-hover-color: #ddd;
+    --table-row-odd-bg-color: #282828;
+    --table-row-hover-bg-color: #363636;
+    --menu-item-bg-color: #555;
+    --btn-default-bg: #222;
+    --btn-default-color: #ccc;
+    --btn-default-border-color: #555;
+    --btn-default-hover-bg: #666;
+    --btn-default-hover-color: #ccc;
+    --btn-default-hover-border-color: #666;
+  }
+  img {
+    opacity: 0.75;
+  }
+  img:hover {
+    opacity: 0.9;
+  }
+}
 html {
   line-height: 1.15; /* 1 */
   -webkit-text-size-adjust: 100%; /* 2 */
@@ -1213,7 +1241,7 @@ pre .javascript .function {
 }
 .links-of-author a::before,
 .links-of-author span.exturl::before {
-  background: #ffe4cb;
+  background: #32a3e0;
   border-radius: 50%;
   content: ' ';
   display: inline-block;
@@ -2709,11 +2737,37 @@ ul.breadcrumb li + li:last-child {
     margin: 8px 0 0;
   }
 }
+:root {
+  --brand-blue: #3b82f6;
+  --brand-blue-hover: #2563eb;
+  --brand-dark: #1e293b;
+  --brand-bg: #f8fafc;
+  --card-bg: #fff;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --code-bg: #f1f5f9;
+  --blockquote-bg: rgba(59,130,246,0.04);
+  --border-color: #e2e8f0;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --brand-blue: #60a5fa;
+    --brand-blue-hover: #93c5fd;
+    --brand-dark: #e2e8f0;
+    --brand-bg: #0f172a;
+    --card-bg: #1e293b;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --code-bg: #334155;
+    --blockquote-bg: rgba(96,165,250,0.08);
+    --border-color: #334155;
+  }
+}
 body {
-  background: #f8fafc;
+  background: var(--brand-bg);
 }
 .header-inner {
-  background: #fff;
+  background: var(--card-bg);
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   padding: 20px 30px;
@@ -2723,7 +2777,7 @@ body {
   letter-spacing: 2px;
 }
 .site-brand-container .site-subtitle {
-  color: #64748b;
+  color: var(--text-secondary);
   letter-spacing: 1px;
   margin-top: 4px;
 }
@@ -2737,17 +2791,17 @@ body {
   padding: 5px 10px;
 }
 .menu .menu-item a:hover {
-  color: #3b82f6;
-  border-bottom-color: #3b82f6;
+  color: var(--brand-blue);
+  border-bottom-color: var(--brand-blue);
   background: transparent;
 }
 .menu .menu-item.active a {
-  color: #3b82f6;
-  border-bottom-color: #3b82f6;
+  color: var(--brand-blue);
+  border-bottom-color: var(--brand-blue);
   background: transparent;
 }
 .post-block {
-  background: #fff;
+  background: var(--card-bg);
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   padding: 30px 30px 20px;
@@ -2761,19 +2815,19 @@ body {
   font-weight: 700;
 }
 .post-title a {
-  color: #1e293b;
+  color: var(--brand-dark);
 }
 .post-title a:hover {
-  color: #3b82f6;
+  color: var(--brand-blue);
 }
 .post-meta {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 .post-body {
   font-size: 16px;
   line-height: 1.9;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 .post-body p {
   margin: 1.2em 0;
@@ -2785,38 +2839,38 @@ body {
 .post-body h5,
 .post-body h6 {
   font-weight: 700;
-  color: #1e293b;
+  color: var(--brand-dark);
   margin-top: 1.5em;
   margin-bottom: 0.5em;
 }
 .post-body blockquote {
-  border-left: 4px solid #3b82f6;
-  background: rgba(59,130,246,0.04);
+  border-left: 4px solid var(--brand-blue);
+  background: var(--blockquote-bg);
   padding: 15px 20px;
   margin: 1.5em 0;
   border-radius: 0 4px 4px 0;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 .post-body blockquote footer {
-  color: #64748b;
+  color: var(--text-secondary);
 }
 .post-body a {
-  color: #3b82f6;
-  border-bottom: 1px dotted #3b82f6;
+  color: var(--brand-blue);
+  border-bottom: 1px dotted var(--brand-blue);
 }
 .post-body a:hover {
-  color: #0b5fe9;
+  color: var(--brand-blue-hover);
   border-bottom-style: solid;
 }
 .post-body code {
   color: #e74c3c;
-  background: #f1f5f9;
+  background: var(--code-bg);
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 0.9em;
 }
 .sidebar {
-  background: #fff;
+  background: var(--card-bg);
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
@@ -2826,10 +2880,10 @@ body {
 .site-author-name {
   font-weight: 700;
   font-size: 18px;
-  color: #1e293b;
+  color: var(--brand-dark);
 }
 .site-description {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
   margin-top: 4px;
 }
@@ -2845,28 +2899,28 @@ body {
 .site-state-item .site-state-item-count {
   font-weight: 700;
   font-size: 18px;
-  color: #1e293b;
+  color: var(--brand-dark);
 }
 .site-state-item .site-state-item-name {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 .footer {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 .footer a {
-  color: #1e293b;
+  color: var(--brand-dark);
 }
 .footer a:hover {
-  color: #3b82f6;
+  color: var(--brand-blue);
 }
 .footer .with-love {
   color: #f00;
   animation: heartBeat 1.33s ease-in-out infinite;
 }
 .reading-progress-bar {
-  background: #3b82f6 !important;
+  background: var(--brand-blue) !important;
 }
 .post-tags {
   margin-top: 20px;
@@ -2875,27 +2929,27 @@ body {
   display: inline-block;
   padding: 2px 10px;
   margin: 2px 4px;
-  background: #f1f5f9;
+  background: var(--code-bg);
   border-radius: 12px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
   transition: all 0.3s ease;
 }
 .post-tags a:hover {
-  background: #3b82f6;
+  background: var(--brand-blue);
   color: #fff;
 }
 .category-list a:hover {
-  color: #3b82f6;
+  color: var(--brand-blue);
 }
 .post-toc .nav-item .nav-link {
-  color: #64748b;
+  color: var(--text-secondary);
 }
 .post-toc .nav-item .nav-link.active {
-  color: #3b82f6;
+  color: var(--brand-blue);
 }
 .post-toc .nav-item .nav-child {
-  border-left: 1px solid #e2e8f0;
+  border-left: 1px solid var(--border-color);
 }
 .btn {
   border-radius: 4px;
@@ -2911,8 +2965,8 @@ body {
   transition: all 0.3s ease;
 }
 .pagination .page-number.current {
-  background: #3b82f6;
-  border-color: #3b82f6;
+  background: var(--brand-blue);
+  border-color: var(--brand-blue);
 }
 @media (max-width: 767px) {
   .post-block {
