@@ -29,6 +29,8 @@
 <p><strong>状态：未解决。</strong> 原文章「根因已定位并修复」的说法并不成立，现改为排查留档，供后续继续分析。</p>
 </blockquote>
 <h2 id="现象"><a href="#现象" class="headerlink" title="现象"></a>现象</h2><p>新焊接的 ESP32-S3 主控板上，PCA9685 舵机驱动初始化失败，<code>abort()</code> 报 <code>ESP_ERR_INVALID_STATE</code>；随后 U8G2（SSD1306 OLED）初始化也出现同样报错：</p>
+<span id="more"></span>
+
 <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ESP_ERROR_CHECK failed: esp_err_t 0x103 (ESP_ERR_INVALID_STATE)</span><br><span class="line">E (1565) i2c.master: ops list is full, please increase your trans_queue_depth</span><br></pre></td></tr></table></figure>
 
 <h2 id="环境"><a href="#环境" class="headerlink" title="环境"></a>环境</h2><ul>
