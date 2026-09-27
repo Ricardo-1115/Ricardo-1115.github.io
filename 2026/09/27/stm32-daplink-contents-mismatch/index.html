@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#e9f4fe">
+<meta name="generator" content="Hexo 8.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#e9f4fe">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"gclv.top","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="最近在使用 DAPLink 给 STM32F103C8T6 下载程序时，Keil 出现下面错误：  1234567891011Full Chip Erase Done.Programming Done.Contents mismatch at: 08000000H  (Flash&#x3D;7CH  Required&#x3D;40H) !Contents mismatch at: 08000001H  (Flash">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DAPLink 下载 STM32 报 Contents mismatch 排查记录">
+<meta property="og:url" content="https://gclv.top/2026/09/27/stm32-daplink-contents-mismatch/index.html">
+<meta property="og:site_name" content="南淮">
+<meta property="og:description" content="最近在使用 DAPLink 给 STM32F103C8T6 下载程序时，Keil 出现下面错误：  1234567891011Full Chip Erase Done.Programming Done.Contents mismatch at: 08000000H  (Flash&#x3D;7CH  Required&#x3D;40H) !Contents mismatch at: 08000001H  (Flash">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gclv.top/images/daplink-contents-mismatch-error.png">
+<meta property="og:image" content="https://gclv.top/images/stm32-boot-mode-table.png">
+<meta property="og:image" content="https://gclv.top/images/reset-handler-bx-main.png">
+<meta property="article:published_time" content="2026-09-27T05:16:00.000Z">
+<meta property="article:modified_time" content="2026-09-27T05:22:27.844Z">
+<meta property="article:author" content="gclv">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gclv.top/images/daplink-contents-mismatch-error.png">
+
+<link rel="canonical" href="https://gclv.top/2026/09/27/stm32-daplink-contents-mismatch/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>DAPLink 下载 STM32 报 Contents mismatch 排查记录 | 南淮</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">南淮</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-learning">
+
+    <a href="/categories/%E5%AD%A6%E4%B9%A0/" rel="section"><i class="code fa-fw"></i>学习</a>
+
+  </li>
+        <li class="menu-item menu-item-thinkings">
+
+    <a href="/categories/%E9%9A%8F%E6%84%9F/" rel="section"><i class="feather fa-fw"></i>随感</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://gclv.top/2026/09/27/stm32-daplink-contents-mismatch/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="gclv">
+      <meta itemprop="description" content="任然我说我庆幸，你永远胜过别人">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="南淮">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          DAPLink 下载 STM32 报 Contents mismatch 排查记录
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2026-09-27 13:16:00 / 修改时间：13:22:27" itemprop="dateCreated datePublished" datetime="2026-09-27T13:16:00+08:00">2026-09-27</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AD%A6%E4%B9%A0/" itemprop="url" rel="index"><span itemprop="name">学习</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>最近在使用 DAPLink 给 STM32F103C8T6 下载程序时，Keil 出现下面错误：</p>
+<p><img src="/images/daplink-contents-mismatch-error.png"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">Full Chip Erase Done.</span><br><span class="line">Programming Done.</span><br><span class="line">Contents mismatch at: 08000000H  (Flash=7CH  Required=40H) !</span><br><span class="line">Contents mismatch at: 08000001H  (Flash=02H  Required=0DH) !</span><br><span class="line">Contents mismatch at: 08000002H  (Flash=04H  Required=00H) !</span><br><span class="line">Contents mismatch at: 08000003H  (Flash=06H  Required=20H) !</span><br><span class="line">Contents mismatch at: 08000008H  (Flash=40H  Required=45H) !</span><br><span class="line">(......)</span><br><span class="line">Contents mismatch at: 08000192H  (Flash=19H  Required=10H) !</span><br><span class="line">Too many errors to display !</span><br><span class="line">Error: Flash Download failed  -  &quot;Cortex-M3&quot;</span><br></pre></td></tr></table></figure>
+
+<p>尝试换用其他新的单片机和 DAPLink，上述问题仍然存在；而改用 ST-Link 则可以正常下载。参考 <a target="_blank" rel="noopener" href="https://blog.csdn.net/songskygo/article/details/98846525">STM32 用 DAPLINK 下载报错处理办法_daplink下载出现错误-CSDN博客</a> 的方法，在 Cortex-M Target Driver Setup 的 Debug 页把 Reset 选项由默认的 Autodetect 改为 SYSRESETREQ 后，DAPLink 下载恢复正常。</p>
+<p>可是这是为什么呢？为什么同样情况下 ST-Link 没问题而 DAPLink 会有问题，它们有什么样的区别，为什么在 Keil 中更改了 Reset 选项就恢复正常了。下面是我的一些学习总结仅供参考，有不对的地方恳请指出。</p>
+<span id="more"></span>
+
+<hr>
+<h2 id="一、「编译-→-下载-→-运行」链路"><a href="#一、「编译-→-下载-→-运行」链路" class="headerlink" title="一、「编译 → 下载 → 运行」链路"></a>一、「编译 → 下载 → 运行」链路</h2><p>首先在 Keil 这种集成开发环境中调用编译器，对用户编写的 C 语言代码进行编译，生成单片机能够看懂的 <strong>Hex &#x2F; Bin 可执行映像</strong>（Hex 是 Intel HEX，本质是 ASCII 文本；Bin 是纯二进制），然后向下载器下达<strong>调试 &#x2F; 下载</strong>指令。下载器（ST-Link &#x2F; J-Link &#x2F; DAPLink 这类硬件）负责把编译好的映像写入单片机的 Flash 闪存。下载<strong>前</strong>，Keil 会先通过下载器让单片机复位，好把内核接管过来、可靠地擦写 Flash；下载<strong>后</strong>还会再复位一次（对应 Download 页的 <code>Reset and Run</code>），让新程序从向量表重新跑起来。</p>
+<p>单片机（以常见的 ARM Cortex-M 内核为例）刚复位时，CPU 会到地址 <code>0x00000000</code>（STM32 上 BOOT0&#x3D;0 时，这里是 Flash 起始地址 <code>0x08000000</code> 的重映射别名）去读<strong>中断向量表</strong>的头两项：</p>
+<p><img src="/images/stm32-boot-mode-table.png"></p>
+<p>参考自STM32F10xxx参考手册（中文）。</p>
+<ul>
+<li><strong>第一个字</strong>：<strong>栈顶指针（MSP）</strong>。</li>
+<li><strong>第二个字</strong>：<strong>复位向量（Reset Vector）</strong>。这是一个内存地址，指向单片机上电后要执行的第一条指令。</li>
+</ul>
+<p>CPU 取到 Reset Vector 后，跳转到启动文件里的 <code>Reset_Handler</code>。它只做两件事，之后就把控制权完全交出去：</p>
+<ol>
+<li><p>调用 <code>SystemInit</code> —— 初始化时钟。<strong>时钟在这里配置，但真正干活的是 C 函数 <code>SystemInit()</code>，汇编只是调用它。</strong>（具体配到什么频率要看用哪套库：SPL 的 <code>system_stm32f10x.c</code> 默认激活 <code>SYSCLK_FREQ_72MHz</code>，会把主频配到 72 MHz；CubeMX&#x2F;HAL 的 <code>SystemInit()</code> 基本只把 RCC 复位到默认状态，真正的时钟配置在 <code>main.c</code> 的 <code>SystemClock_Config()</code> 里，由 <code>main()</code> 调用。）</p>
+</li>
+<li><p>跳到 <strong>C 运行库入口 <code>__main</code></strong>，由它做<strong>分散加载（<code>__scatterload</code>）</strong>：把 Flash 里的 <code>.data</code> 初值复制到 RAM、把 <code>.bss</code> 段清零。</p>
+<p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/2197668">聊聊程序分散加载启动的奥秘-腾讯云开发者社区-腾讯云</a></p>
+<p><a target="_blank" rel="noopener" href="https://developer.aliyun.com/article/1206966">深入解析程序内存布局代码段数据段BSS堆栈-开发者社区-阿里云</a></p>
+<p>这一步是 C 运行库做的，不是 startup 汇编自己做的。</p>
+</li>
+</ol>
+<p><strong>接下来的事已经不归 <code>Reset_Handler</code> 管了</strong>：<code>__main</code> 完成数据搬运后，再由 C 运行库调用 <code>main()</code>，进入我们的 <code>while(1)</code> 主循环。</p>
+<p><img src="/images/reset-handler-bx-main.png"></p>
+<h2 id="二、回到报错本身：这是「校验失败」，不是「写入失败」"><a href="#二、回到报错本身：这是「校验失败」，不是「写入失败」" class="headerlink" title="二、回到报错本身：这是「校验失败」，不是「写入失败」"></a>二、回到报错本身：这是「校验失败」，不是「写入失败」</h2><p>日志顺序是 <code>Full Chip Erase Done.</code> → <code>Programming Done.</code> → <code>Contents mismatch ...</code>，说明<strong>擦除和写入都已经走完了</strong>，失败的是最后一步<strong>回读校验（Verify）</strong>——读回来的字节和要写的对不上。</p>
+<p>所以问题并不出在「写不进 Flash」，而是出在<strong>整个下载过程中「复位 + 接管内核」的时序</strong>上。</p>
+<h2 id="三、回答那三个「为什么」"><a href="#三、回答那三个「为什么」" class="headerlink" title="三、回答那三个「为什么」"></a>三、回答那三个「为什么」</h2><p><strong>1）为什么 ST-Link 可以、DAPLink 不行？它们到底差在哪？</strong></p>
+<p>两者是不同厂家的调试器，固件和 PC 端驱动都不一样，<strong>默认走的复位路径也不同</strong>。</p>
+<ul>
+<li><strong>ST-Link</strong>：走 ST 自家驱动，默认用 <strong>SWD 上的软件复位</strong>——这才是它不接复位线也一切正常的原因。</li>
+<li><strong>DAPLink</strong>：在 Keil 里走的是<strong>通用 CMSIS-DAP 驱动</strong>，而 CMSIS-DAP 协议里「硬件 nRESET 线」是一等公民（有专门查询 &#x2F; 执行硬件复位引脚的命令）。当 Reset 停在 <strong>Autodetect</strong> 让 Keil 自己猜时，驱动倾向于选<strong>硬件复位路径</strong>。</li>
+</ul>
+<p><strong>2）为什么改了 Reset 选项就恢复正常？</strong></p>
+<p>Autodetect 会让 Keil 自己挑复位方式，它可能挑到需要 nRST 硬件线的方式，而 DAPLink 没有（或没用上）这根线，<strong>于是复位实际没有发生</strong>，下载流程里「停住内核 → 把 Flash 算法搬进 RAM → 让目标跑算法」这几步就都是在<strong>目标状态未知</strong>的情况下做的；加上板子<strong>原来的程序还在跑</strong>（可能重配了 PA13&#x2F;PA14、进了低功耗、开了看门狗等），于是时序错乱、校验对不上。</p>
+<p>这里的关键是：<strong>Keil 的 Flash 编程算法并不是跑在 PC 上，而是几百字节的 ARM 机器码被搬进目标 RAM、由目标内核自己执行</strong>（它去敲 <code>FLASH-&gt;KEYR / CR / SR</code> 完成擦写），用的也是目标的时钟。所以只要复位没做干净、目标不在已知状态，这段算法随时可能被原程序抢 RAM、被看门狗打断、或在错误的时钟下运行 → 写进去的就是垃圾，校验自然满篇 mismatch。</p>
+<p>而 <strong>SYSRESETREQ 是 Cortex-M 内核自带的软件系统复位</strong>：调试器通过 SWD 往内核的 <code>SCB-&gt;AIRCR</code> 寄存器（地址 <code>0xE000ED0C</code>）写入 <code>0x05FA0004</code> 就能触发系统复位，<strong>完全不需要 nRST 引脚</strong>，复位时序确定且可复现，所以问题消失。</p>
+<hr>
+<p><strong>结论</strong>：遇到这个报错，把 Cortex-M Target Driver Setup → Debug 页的 Reset 由 Autodetect 改成 <strong>SYSRESETREQ</strong>，就能绕过对 nRST 的依赖；根治办法是给 DAPLink 补一根 nRST（开漏）接到目标板的 NRST。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2026/05/18/esp32-i2c-esp_err_invalid_state-debug/" rel="next" title="ESP32-S3 I2C ESP_ERR_INVALID_STATE 排查记录（未解决）">
+      ESP32-S3 I2C ESP_ERR_INVALID_STATE 排查记录（未解决） <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E3%80%8C%E7%BC%96%E8%AF%91-%E2%86%92-%E4%B8%8B%E8%BD%BD-%E2%86%92-%E8%BF%90%E8%A1%8C%E3%80%8D%E9%93%BE%E8%B7%AF"><span class="nav-number">1.</span> <span class="nav-text">一、「编译 → 下载 → 运行」链路</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%9B%9E%E5%88%B0%E6%8A%A5%E9%94%99%E6%9C%AC%E8%BA%AB%EF%BC%9A%E8%BF%99%E6%98%AF%E3%80%8C%E6%A0%A1%E9%AA%8C%E5%A4%B1%E8%B4%A5%E3%80%8D%EF%BC%8C%E4%B8%8D%E6%98%AF%E3%80%8C%E5%86%99%E5%85%A5%E5%A4%B1%E8%B4%A5%E3%80%8D"><span class="nav-number">2.</span> <span class="nav-text">二、回到报错本身：这是「校验失败」，不是「写入失败」</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E5%9B%9E%E7%AD%94%E9%82%A3%E4%B8%89%E4%B8%AA%E3%80%8C%E4%B8%BA%E4%BB%80%E4%B9%88%E3%80%8D"><span class="nav-number">3.</span> <span class="nav-text">三、回答那三个「为什么」</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="gclv"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">gclv</p>
+  <div class="site-description" itemprop="description">任然我说我庆幸，你永远胜过别人</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">3</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Ricardo-1115" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Ricardo-1115" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2025 – 
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">gclv</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
